@@ -6,13 +6,16 @@ LATEXMK = latexmk -pdf
 # Main file
 MAIN = main.tex
 
+# Build directory
+BUILD = build
+
 # Default target
-all: $(MAIN)
-	$(LATEXMK) $(MAIN)
+all:
+	mkdir -p $(BUILD)
+	cd srcs && $(LATEXMK) -outdir=../$(BUILD) $(MAIN)
 
 # Clean up auxiliary files
 clean:
-	$(LATEXMK) -c
-	rm -f *.pdf
+	rm -rf $(BUILD)
 
 .PHONY: all clean
