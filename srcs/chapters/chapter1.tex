@@ -28,16 +28,10 @@ Characteristics of Reinforcement Learning:
               \item Deterministic: $\pi(s) = a$
               \item Stochastic: $\pi(a|s) = \mathbb{P}[A_t = a | S_t = s]$
           \end{itemize}
-    \item Value function: How good is each state and action.
-
-          \begin{itemize}
-              \item $v^{\pi}(s) =
-                        \mathbb{E}_{\pi}[R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \ldots | S_t =
-                        s]$
-          \end{itemize}
+    \item Value function $v_{\pi}(s)$: How good is each state and action.
     \item Model: Agent's representation of the environment
           \begin{itemize}
-              \item $\mathcal{P}$ predicts the next state. $\mathcal{P}_{ss'}^a = \mathbb{P}[S_{t+1} = s' | S_t = s, A_t = a]$
-              \item $\mathcal{R}$ predicts the next immediate reward. $\mathcal{R}_s^a = \mathbb{E}[R_{t+1} | S_t = s, A_t = a]$
+              \item $\mathcal{P}$ predicts the next state.
+              \item $\mathcal{R}$ predicts the next immediate reward.
           \end{itemize}
 \end{itemize}
