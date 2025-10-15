@@ -1,0 +1,43 @@
+\section{Lecture 1: Introduction to Reinforcement Learning}
+
+Characteristics of Reinforcement Learning:
+\begin{itemize}
+    \item No supervisor, only a reward signal
+    \item Feedback is delayed
+    \item Time really matters
+    \item Agent's actions affect the subsequent data it receives
+\end{itemize}
+
+\noindent Definitions:
+
+\begin{itemize}
+    \item Reward $R_t$ is a scalar feedback signal
+    \item Action $A_t$ is what the agent can do
+    \item Observation $O_t$ is what the agent perceives
+    \item History $H_t = O_1, R_1, A_1, \ldots, A_{t-1}, O_t, R_t$
+    \item State $S_t = f(H_t)$ is a summary of the agent's past observations
+    \item A state $S_t$ is Markov if and only if $\mathbb{P}[S_{t+1}|S_t] =
+              \mathbb{P}[S_{t+1}|S_1, \ldots, S_t]$
+\end{itemize}
+
+\noindent Major components of an RL agent:
+
+\begin{itemize}
+    \item Policy: Agent's behaviour function.
+          \begin{itemize}
+              \item Deterministic: $\pi(s) = a$
+              \item Stochastic: $\pi(a|s) = \mathbb{P}[A_t = a | S_t = s]$
+          \end{itemize}
+    \item Value function: How good is each state and action.
+
+          \begin{itemize}
+              \item $v^{\pi}(s) =
+                        \mathbb{E}_{\pi}[R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \ldots | S_t =
+                        s]$
+          \end{itemize}
+    \item Model: Agent's representation of the environment
+          \begin{itemize}
+              \item $\mathcal{P}$ predicts the next state. $\mathcal{P}_{ss'}^a = \mathbb{P}[S_{t+1} = s' | S_t = s, A_t = a]$
+              \item $\mathcal{R}$ predicts the next immediate reward. $\mathcal{R}_s^a = \mathbb{E}[R_{t+1} | S_t = s, A_t = a]$
+          \end{itemize}
+\end{itemize}
