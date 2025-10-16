@@ -1,0 +1,87 @@
+\section{Lecture 3: Planning by Dynamic Programming}
+
+\subsection{Policy Evaluation}
+
+Goal: Given an MDP $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R},
+    \gamma \rangle$ and a fixed policy $\pi$, find the value function $v_\pi$. To
+perform policy evaluation, the Bellman expectation equation is applied
+iteratively to compute the value function $v_1 \to v_2 \to \ldots v_\pi$. Here
+is the Bellman expectation equation from Chapter 2:
+
+\[
+    \mathbf{v}_{\pi} = \mathcal{R}^{\pi} + \gamma \mathcal{P}^{\pi} \mathbf{v}_{\pi}
+\]
+
+\noindent Example of policy evaluation in a small gridworld where the first cell (first
+row first column) and last cell (last row last column) are the end state with
+reward of 0. Any other move cost a reward of -1. The fixed policy is $\pi(a) =
+    0.25$ (uniform probability for moving to north east south west direction).
+
+\begin{gather*}
+    v_1 \to v_2 \to v_3 \\
+    \begin{bmatrix}
+        0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0
+    \end{bmatrix}         \to
+    \begin{bmatrix}
+        0  & -1 & -1 & -1 \\
+        -1 & -1 & -1 & -1 \\
+        -1 & -1 & -1 & -1 \\
+        -1 & -1 & -1 & 0
+    \end{bmatrix}     \to
+    \begin{bmatrix}
+        0     & -1.75 & -1    & -2    \\
+        -1.75 & -2    & -2    & -2    \\
+        -2    & -2    & -2    & -1.75 \\
+        -2    & -2    & -1.75 & 0
+    \end{bmatrix}
+\end{gather*}
+
+\subsection{Policy Iteration}
+
+Goal: Given an MDP $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R},
+    \gamma \rangle$, find the optimal value function $v_*$ and optimal policy
+$\pi_*$. To perform policy iteration, alternates between two steps in a loop:
+
+\begin{itemize}
+    \item Policy Evaluation: Compute state value function $v_\pi$ for the current policy
+          (using the procedure from previous section)
+    \item Policy Improvement: Based on the $v_\pi$ from previous step, compute action
+          value function $q_\pi(s, a)$ and use the action value function to improve the
+          policy $\pi(s)$ by acting greedily.
+\end{itemize}
+
+\[
+    \pi^\prime(s) = \argmax_{a \in A} q_\pi(s, a)
+\]
+
+\subsection{Value Iteration}
+
+Goal: Same as policy iteration in previous section, given an MDP $\langle
+    \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$, find the
+optimal value function $v_*$ and optimal policy $\pi_*$. However, the
+implementation is different. To understand why the implementation is different,
+we need to first look at the Priniple of optimality. \\
+
+\noindent \textbf{Priniple of optimality}: A policy $\pi(a|s)$ achives the
+optimal value from state $s$, $v_\pi(s) = v_*(s)$, if and only if, for any
+state $s\prime$ reachable from $s$, $\pi$ achieves the optimal value from
+state $s\prime$, $v_\pi(s\prime)=v_*(s\prime)$. \\
+
+\noindent With the principle above, it means that there is an optimal subproblem in the
+problem of finding the optimal value function, hence, dynamic programming
+technique can be used to find the optimal value function iteratively. \\
+
+\noindent The dynamic programming logic can be describe as applying the following update
+using Bellman Optimality Equation (for stochastic policy) iteratively until $v_*(s)$
+converge:
+
+\[
+    v_*(s) \leftarrow \max_{a \in \mathcal{A}} \left( \mathcal{R}_s^a +\gamma \sum_{s\prime \in \mathcal{S}} \mathcal{P}_{ss\prime}^a v_*(s\prime) \right)
+\]
+
+\subsection{Contraction Mapping}
+
+TODO
