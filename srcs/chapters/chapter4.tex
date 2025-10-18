@@ -1,0 +1,142 @@
+\section{Model-Free Prediction}
+
+Estimate the value function $v_\pi$ of an unknown Markov Decision Process, i.e.
+no knowledge of transition probability $\mathcal{P}_{ss\prime}^a$ and reward
+$\mathcal{R}_s^a$, but the agent do know the actual reward and the actual state
+that they end up in.
+
+\subsection{Monte-Carlo Learning}
+
+Monte-Carlo learning learns from complete episodes without bootstrapping. \\
+
+\noindent Every-Visit Monte-Carlo policy evaluation algorithm:
+
+\begin{enumerate}
+    \item Sample episodes: Run complete episodes following policy $\pi$ to get a history
+          $S_1, A_1, R_2, S_2, A_2, R_3, \ldots$.
+    \item Calculate actual returns for each state using $G_t = R_{t+1} + \gamma R_{t+2} +
+              \ldots$
+    \item Keep track of $N(s) = $ number of times we visited state s
+    \item Keep track of $S(s) = $ sum of all returns from state s
+    \item The value function is estimated using $V(s) = S(s) / N(s)$
+\end{enumerate}
+
+\noindent Step 3, 4 and 5 above can be done incrementally using the following formula:
+
+\begin{align*}
+    N(S_t) & \leftarrow N(S_t) + 1                               \\
+    V(S_t) & \leftarrow V(S_t) + \frac{1}{N(S_t)} (G_t - V(S_t))
+\end{align*}
+
+\noindent Or, it can also be done using exponential moving average, which is useful to forget old episodes:
+
+\[
+    V(S_t) \leftarrow V(S_t) + \alpha (G_t - V(S_t))
+\]
+
+\subsection{Temporal-Difference (TD) Learning}
+
+TD learning learns from incomplete episodes with bootstrapping. \\
+
+\noindent Step 3, 4, and 5 of the Monte-Carlo algorithm is replaced to update the value
+function $V(S_t)$ using estimated return $R_{t+1} + \gamma V(S_{t+1})$.
+
+\[
+    V(S_t) \leftarrow V(S_t) + \alpha (R_{t+1} + \gamma V(S_{t+1}) - V(S_t))
+\]
+
+\subsection{Comparison of MC vs. TD}
+
+\noindent \textbf{Certainty Equivalence}: MC tries to learn the value function based on observed
+return without building a model of the environment, while TD tries to learn the
+value function by building a model of the environment based on observed return.
+MC converges to solution with minimum mean-squared error, while TD converges to
+solution of max likelihood model of the environment. \\
+
+\begin{table}[H]
+    \centering
+    \caption{Comparison of MC vs. TD Methods}
+    \begin{tabular}{|l|p{6cm}|p{6cm}|}
+        \hline
+        \textbf{Aspect}             & \textbf{Monte Carlo (MC)}                & \textbf{Temporal Difference (TD)}      \\
+        \hline
+        \textbf{Learning Timing}    & Must wait until end of episode           & Can learn online after every step      \\
+        \hline
+        \textbf{Final Outcome}      & Requires knowing final outcome           & Can learn without final outcome        \\
+        \hline
+        \textbf{Episode Completion} & Only learns from complete sequences      & Learns from incomplete sequences       \\
+        \hline
+        \textbf{Environment Type}   & Episodic environments only               & Works in continuing environments       \\
+        \hline
+        \textbf{Convergence}        & Good convergence properties              & TD (0) converges to $v_\pi(s)$         \\
+                                    & (even with function approximation)       & (but not always with function approx.) \\
+        \hline
+        \textbf{Initial Value}      & Not very sensitive to initial value      & More sensitive to initial value        \\
+        \hline
+        \textbf{Complexity}         & Very simple to understand and use        & More complex conceptually              \\
+        \hline
+        \textbf{Bias/Variance}      & High variance, zero bias                 & Low variance, some bias                \\
+        \hline
+        \textbf{Efficiency}         & MC does not exploit Markov property      & TD explots Markov property             \\
+                                    & More effective in non-Markov environment & More efficient in Markov environment   \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{n-step TD}
+
+Generalizes MC and TD (1-step TD). Instead of updating the value function using
+only the next reward and estimated value of the next state, we can use the next
+n rewards and estimated value of the state after n steps.
+
+\begin{align*}
+    G_t^{(n)} & = R_{t+1} + \gamma R_{t+2} + \ldots + \gamma^{n-1} R_{t+n} + \gamma^n V(S_{t+n}) \\
+    V(S_t)    & \leftarrow V(S_t) + \alpha (G_t^{(n)} - V(S_t))
+\end{align*}
+where $n$ is a parameter that controls the number of steps to look ahead. When $n = 1$, it
+reduces to 1-step TD, and when $n$ approaches infinity, it reduces to Monte-Carlo method.
+
+\subsection{Forward view of TD ($\lambda$)}
+
+Instead of just taking n-step returns, we can take a weighted average of all
+n-step returns using the weight $(1 - \lambda) \lambda^{n-1}$.
+
+\begin{align*}
+    G_t^{\lambda} & = (1 - \lambda) \sum_{n=1}^{\infty} \lambda^{n-1} G_t^{(n)} \\
+    V(S_t)        & \leftarrow V(S_t) + \alpha (G_t^{\lambda} - V(S_t))
+\end{align*}
+
+\noindent where $\lambda \in [0, 1]$ is a parameter that controls the weighting of
+different n-step returns. When $\lambda = 0$, it reduces to 1-step TD, and when
+$\lambda = 1$, it reduces to Monte-Carlo method. The formulation above is known
+as forward-view TD ($\lambda$) because it requires looking into the future to
+compute the update target $G_t^{\lambda}$. Similar to MC, it can only be
+computed from complete episodes.
+
+\subsection{Backward view of TD ($\lambda$)}
+
+Eligibility traces combine frequency heuristic and recency heuristic to assign
+credit to most frequently visited states and most recent states. In the
+backward view of TD ($\lambda$), we maintain an eligibility trace $E_t(s)$ for
+each state $s$, which is updated at each time step $t$ as follows:
+
+\begin{align*}
+    E_0(s)   & = 0                                      \\
+    E_t(s)   & = \gamma \lambda E_{t-1}(s) + 1(S_t = s) \\
+    \delta_t & = R_{t+1} + \gamma V(S_{t+1}) - V(S_t)   \\
+    V(s)     & \leftarrow V(s) + \alpha \delta_t E_t(s)
+\end{align*}
+
+\noindent The sum of offline updates in forward view TD ($\lambda$) is $sum_{t=1}^{T}
+    \alpha (G_t^\lambda - V(S_t))$. The sum of offline updates in backward view TD
+($\lambda$) is $sum_{t=1}^{T} \alpha \delta_t E_t(S_t)$. It can be shown that
+these two sums are equal. Thus, both views of TD ($\lambda$) are equivalent in
+terms of the overall updates they produce to the value function.
+
+\[
+    \sum_{t=1}^{T} \alpha \delta_t E_t(S_t) = \sum_{t=1}^{T} \alpha (G_t^\lambda - V(S_t)) 1 (S_t = s)
+\]
+
+\noindent In online updates, TD ($\lambda$) are applied online at each time step within
+episode. In contrast to offline updates, doing online updates using foward view
+and backward view TD ($\lambda$) are not equivalent.
