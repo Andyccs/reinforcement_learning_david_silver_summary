@@ -64,7 +64,89 @@ The conditions are:
 
 \subsection{On-Policy Temporal-Difference Control}
 
-TODO
+\textbf{Sarsa} algorithm:
+
+\begin{itemize}
+    \item Policy evaluation: $Q(S, A) \leftarrow Q(S, A) + \alpha (R + \gamma Q(S', A') -
+              Q(S, A))$
+    \item Policy improvement: $\epsilon$-greedy policy improvement is used
+\end{itemize}
+
+\noindent Sarsa algorithm for on-policy control is as follows:
+
+\begin{itemize}
+    \item Initialize $Q(s, a), \forall s \in \mathcal{S}, a \in \mathcal{A}(s)$,
+          arbitrarily, and $Q(\text{terminal-state}, \cdot) = 0$
+    \item Repeat (for each episode):
+          \begin{itemize}
+              \item Initialize $S$
+              \item Choose $A$ from $S$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+              \item Repeat (for each step of episode):
+                    \begin{itemize}
+                        \item Take action $A$, observe $R, S'$
+                        \item Choose $A'$ from $S'$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+                        \item $Q(S, A) \leftarrow Q(S, A) + \alpha[R + \gamma Q(S', A') - Q(S, A)]$
+                        \item $S \leftarrow S'; A \leftarrow A';$
+                    \end{itemize}
+              \item until $S$ is terminal
+          \end{itemize}
+\end{itemize}
+
+\noindent \textbf{n-Step Sarsa}: Instead of updating $Q$ based on a single step, we can update it using n steps:
+
+\[
+    q_t^{(n)} = R_{t+1} + \gamma R_{t+2} + \cdots + \gamma^{n-1} R_{t+n} + \gamma^n Q(S_{t+n}, A_{t+n})
+\]
+
+\noindent The n-step Sarsa policy evaluation updates is as follows:
+
+\[
+    Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \left( q_t^{(n)} - Q(S_t, A_t) \right)
+\]
+
+\noindent \textbf{Forward View Sarsa($\lambda$)}: Similar to TD($\lambda$), we can define the
+n-step return using weighted sum of n-step returns:
+
+\begin{gather*}
+    q_t^{\lambda} = (1 - \lambda) \sum_{n=1}^{\infty} \lambda^{n-1} q_t^{(n)} \\
+    Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \left( q_t^{\lambda} - Q(S_t, A_t) \right)
+\end{gather*}
+
+\noindent \textbf{Backward view Sarsa($\lambda$)} uses eligibility traces to update the
+action-value function:
+
+\begin{align*}
+    E_0(s, a) & = 0                                                  \\
+    E_t(s, a) & = \gamma \lambda E_{t-1}(s, a) + 1(S_t = s, A_t = a) \\
+    \delta_t  & = R_{t+1} + \gamma Q(S_{t+1}, A_{t+1}) - Q(S_t, A_t) \\
+    Q(s, a)   & \leftarrow Q(s, a) + \alpha \delta_t E_t(s, a)
+\end{align*}\
+
+\noindent Sarsa($\lambda$) algorithm is as follows:
+
+\begin{itemize}
+    \item Initialize $Q(s, a)$ arbitrarily, for all $s \in \mathcal{S}, a \in
+              \mathcal{A}(s)$
+    \item Repeat (for each episode):
+          \begin{itemize}
+              \item $E(s, a) = 0$, for all $s \in \mathcal{S}, a \in \mathcal{A}(s)$
+              \item Initialize $S, A$
+              \item Repeat (for each step of episode):
+                    \begin{itemize}
+                        \item Take action $A$, observe $R, S'$
+                        \item Choose $A'$ from $S'$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+                        \item $\delta \leftarrow R + \gamma Q(S', A') - Q(S, A)$
+                        \item $E(S, A) \leftarrow E(S, A) + 1$
+                        \item For all $s \in \mathcal{S}, a \in \mathcal{A}(s)$:
+                              \begin{itemize}
+                                  \item $Q(s, a) \leftarrow Q(s, a) + \alpha \delta E(s, a)$
+                                  \item $E(s, a) \leftarrow \gamma \lambda E(s, a)$
+                              \end{itemize}
+                        \item $S \leftarrow S'; A \leftarrow A'$
+                    \end{itemize}
+              \item until $S$ is terminal
+          \end{itemize}
+\end{itemize}
 
 \subsection{Off-Policy Learning}
 
