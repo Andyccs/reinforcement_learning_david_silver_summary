@@ -14,7 +14,53 @@ $\pi$ from experience sampled from $\mu$.
 
 \subsection{On-Policy Monte-Carlo Control}
 
-TODO
+Policy evaluation is done using $Q(s, a)$ since it is model free (i.e. does not
+depend on $\mathcal{P}$ and $\mathcal{R}$). \\
+
+\noindent $\epsilon$-Greedy Exploration:
+
+\begin{equation*}
+    \pi(a|s) = \begin{cases}
+        \epsilon / m + 1 - \epsilon & \text{if } a^* = \argmax_{a \in \mathcal{A}} Q(s, a) \\
+        \epsilon / m                & \text{otherwise}
+    \end{cases}
+\end{equation*}
+
+\noindent It can be proof that for any $\epsilon$-greedy policy $\pi$, the
+$\epsilon$-greedy policy $\pi^\prime$ with respect to $Q_\pi$ is an
+improvement, i.e. $v_{\pi\prime}(s) \ge v_\pi(s)$. \\
+
+\noindent Greedy in the Limit with Infinite Exploration (GLIE) is a set of two conditions
+that, if met, ensure that an algorithm will eventually find the optimal policy.
+The conditions are:
+
+\begin{itemize}
+    \item \textbf{Infinite Exploration}: All state-action pairs are explored infinitely many times,
+          $\lim_{k \to \infty} N_k(s, a) = \infty$ where $N_k(s, a)$ is the number of times action
+          $a$ has been taken in state $s$ up to time step $k$.
+    \item \textbf{Greedy in the Limit}: The policy converges to a greedy policy,
+          $\lim_{k \to \infty} \pi_k(a|s) = 1$ if $a = \argmax_{a \in \mathcal{A}} Q_k(s, a)$ and
+          0 otherwise.
+\end{itemize}
+
+\noindent The GLIE Monte-Carlo control algorithm is as follows:
+
+\begin{enumerate}
+    \item Sample $k$th episode using $\pi$: $\{S_1, A_1, R_2, \dots, S_T\} \sim \pi$
+    \item For each state $S_t$ and action $A_t$ in the episode,
+          \begin{itemize}
+              \item $N(S_t, A_t) \leftarrow N(S_t, A_t) + 1$
+              \item $Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \frac{1}{N(S_t, A_t)} (G_t - Q(S_t, A_t))$
+          \end{itemize}
+    \item Improve policy based on the new action-value function
+          \begin{itemize}
+              \item $\epsilon \leftarrow 1/k$
+              \item $\pi \leftarrow \epsilon\text{-greedy}(Q)$
+          \end{itemize}
+\end{enumerate}
+
+\noindent GLIE Monte-Carlo control converges to the optimal action-value function, $Q(s,
+    a) \rightarrow q_*(s, a)$
 
 \subsection{On-Policy Temporal-Difference Control}
 
