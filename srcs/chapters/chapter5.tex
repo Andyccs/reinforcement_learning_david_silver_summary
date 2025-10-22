@@ -150,8 +150,47 @@ action-value function:
 
 \subsection{Off-Policy Learning}
 
-TODO
+\noindent \textbf{Off-policy learning}: Evaluate target policy $\pi$ while following behavior
+policy $\mu$ to compute $v_\pi(s)$ or $q_\pi(s, a)$. \\
 
-\subsection{Summary}
+\noindent \textbf{Off-policy Monte-Carlo using Importance Sampling}:
 
-TODO
+\begin{gather*}
+    G_t^{\pi / \mu} = \frac{\pi(A_t|S_t)}{\mu(A_t|S_t)} \frac{\pi(A_{t+1}|S_{t+1})}{\mu(A_{t+1}|S_{t+1})} \cdots \frac{\pi(A_{T}|S_{T})}{\mu(A_{T}|S_{T})} G_t \\
+    V(S_t) \leftarrow V(S_t) + \alpha \left( G_t^{\pi / \mu} - V(S_t) \right)
+\end{gather*}
+
+\noindent \textbf{Off-policy TD using Imporantance Sampling}:
+
+\begin{gather*}
+    V(S_t) \leftarrow V(S_t) + \alpha \left( \frac{\pi(A_t|S_t)}{\mu(A_t|S_t)} (R_{t+1} + \gamma V(S_t+1)) - V(S_t) \right)
+\end{gather*}
+
+\noindent \textbf{Q-learning}:
+
+\begin{align*}
+    \pi(S_{t+1})                    & = \argmax_{a'} Q(S_{t+1}, a')                                                             \\
+    R_{t+1} + \gamma Q(S_{t+1}, A') & = R_{t+1} + \gamma Q(S_{t+1}, \argmax_{a'} Q(S_{t+1}, a'))                                \\
+                                    & = R_{t+1} + \gamma \max_{a'} Q(S_{t+1}, a')                                               \\
+    Q(S_t, A_t)                     & \leftarrow Q(S_t, A_t) + \alpha (R_{t+1} + \gamma Q(S_{t+1}, A') - Q(S_t, A_t))           \\
+    Q(S_t, A_t)                     & \leftarrow Q(S_t, A_t) + \alpha (R_{t+1} + \gamma \max_{a'} Q(S_{t+1}, a') - Q(S_t, A_t))
+\end{align*}
+
+\noindent Q-learning algorithm is as follows:
+
+\begin{itemize}
+    \item Initialize $Q(s, a), \forall s \in \mathcal{S}, a \in \mathcal{A}(s)$,
+          arbitrarily, and $Q(\text{terminal-state}, \cdot) = 0$
+    \item Repeat (for each episode):
+          \begin{itemize}
+              \item Initialize $S$
+              \item Repeat (for each step of episode):
+                    \begin{itemize}
+                        \item Choose $A$ from $S$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+                        \item Take action $A$, observe $R, S'$
+                        \item $Q(S, A) \leftarrow Q(S, A) + \alpha[R + \gamma \max_{a'} Q(S', a') - Q(S, A)]$
+                        \item $S \leftarrow S'$
+                    \end{itemize}
+              \item until $S$ is terminal
+          \end{itemize}
+\end{itemize}
