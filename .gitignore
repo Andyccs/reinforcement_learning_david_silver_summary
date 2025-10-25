@@ -13,3 +13,6 @@
 
 # PDF output
 *.pdf
+
+.ipynb_checkpoints/
+__pycache__/
