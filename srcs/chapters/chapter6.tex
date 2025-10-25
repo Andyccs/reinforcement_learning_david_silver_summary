@@ -1,0 +1,168 @@
+\section{Lecture 6: Value Function Approximation}
+
+Large MDP can be solved by estimating value function using function
+approximation:
+
+\begin{gather*}
+    \hat{v}(s, \mathbf{w}) \approx v_\pi(s) \\
+    \hat{q}(s, a, \mathbf{w}) \approx q_\pi(s, a)
+\end{gather*}
+
+\subsection{Incremental Methods}
+
+\noindent \textbf{Gradient descent}: To find a local minimum of a differentiable function
+$J(\mathbf{w})$, we adjust the parameter vector $\mathbf{w}$ in the direction
+of the negative gradient:
+
+\begin{equation*}
+    \Delta \mathbf{w} = -\frac{1}{2} \alpha \nabla_\mathbf{w} J(\mathbf{w})
+\end{equation*}
+
+\noindent \textbf{Value function approximation by stochastic gradient descent}: The goal
+is to find the parameter vector $\mathbf{w}$ that minimizes the mean-squared error between
+the approximate value function $\hat{v}(S, \mathbf{w})$ and the true value function $v_\pi(S)$.
+The update rule is:
+
+\begin{align*}
+    J(\mathbf{w})     & = \mathbb{E}_\pi \left[ \left( v_\pi(S) - \hat{v}(S, \mathbf{w}) \right)^2 \right]                                                               \\
+    \Delta \mathbf{w} & = -\frac{1}{2} \alpha \nabla_\mathbf{w} J(\mathbf{w})                                                                                            \\
+                      & = \alpha \mathbb{E}_\pi \left[ (v_\pi(S) - \hat{v}(S, \mathbf{w})) \nabla_\mathbf{w} \hat{v}(S, \mathbf{w}) \right]                              \\
+    \Delta \mathbf{w} & = \alpha (v_\pi(S) - \hat{v}(S, \mathbf{w})) \nabla_\mathbf{w} \hat{v}(S, \mathbf{w}) \text{ (Stochastic gradient descent samples the gradient)}
+\end{align*}
+
+\noindent \textbf{Linear value function approximation}: The approximate value function is a linear
+combination of features.
+
+\begin{align*}
+    \hat{v}(S, \mathbf{w})                   & = \mathbf{x}(S)^\top \mathbf{w} = \sum_{j=1}^n x_j(S) w_j  \\
+    \nabla_\mathbf{w} \hat{v}(S, \mathbf{w}) & = \mathbf{x}(S)                                            \\
+    \Delta \mathbf{w}                        & = \alpha (v_\pi(S) - \hat{v}(S, \mathbf{w})) \mathbf{x}(S)
+\end{align*}
+
+\noindent \textbf{Incremental prediction algorithms}: In reinforcement learning, the true value
+function $v_\pi(s)$ is unknown. Instead, we substitute a target for $v_\pi(s)$.
+
+\begin{itemize}
+    \item For Monte-Carlo (MC), the target is the return $G_t$:
+          \begin{align*}
+              \Delta \mathbf{w} & = \alpha (G_t - \hat{v}(S_t, \mathbf{w})) \nabla_\mathbf{w} \hat{v}(S_t, \mathbf{w})                  \\
+              \Delta \mathbf{w} & = \alpha (G_t - \hat{v}(S_t, \mathbf{w})) \mathbf{x}(S_t) \text{ (for linear function approximation)}
+          \end{align*}
+    \item For Temporal-Difference (TD(0)), the target is the TD target $R_{t+1} + \gamma
+              \hat{v}(S_{t+1}, \mathbf{w})$:
+          \begin{align*}
+              \Delta \mathbf{w} & = \alpha (R_{t+1} + \gamma \hat{v}(S_{t+1}, \mathbf{w}) - \hat{v}(S_t, \mathbf{w})) \nabla_\mathbf{w} \hat{v}(S_t, \mathbf{w})                  \\
+              \Delta \mathbf{w} & = \alpha (R_{t+1} + \gamma \hat{v}(S_{t+1}, \mathbf{w}) - \hat{v}(S_t, \mathbf{w})) \mathbf{x}(S_t) \text{ (for linear function approximation)}
+          \end{align*}
+    \item For forward view TD($\lambda$), the target is the $\lambda$-return
+          $G_t^\lambda$:
+          \begin{align*}
+              \Delta \mathbf{w} & = \alpha (G_t^\lambda - \hat{v}(S_t, \mathbf{w})) \nabla_\mathbf{w} \hat{v}(S_t, \mathbf{w})                  \\
+              \Delta \mathbf{w} & = \alpha (G_t^\lambda - \hat{v}(S_t, \mathbf{w})) \mathbf{x}(S_t) \text{ (for linear function approximation)}
+          \end{align*}
+    \item For backward view TD($\lambda$), we use eligibility traces to update the value
+          function:
+          \begin{align*}
+              E_0               & = 0                                                                                    \\
+              E_t               & = \gamma \lambda E_{t-1} + \nabla_\mathbf{w} \hat{v}(S_t, \mathbf{w})                  \\
+              E_t               & = \gamma \lambda E_{t-1} + \mathbf{x}(S_t) \text{ (for linear function approximation)} \\
+              \delta_t          & = R_{t+1} + \gamma \hat{v}(S_{t+1}, \mathbf{w}) - \hat{v}(S_t, \mathbf{w})             \\
+              \Delta \mathbf{w} & = \alpha \delta_t E_t
+          \end{align*}
+\end{itemize}
+
+\noindent \textbf{Incremental control algorithms}: The goal is to find the
+approximation of action-value function using stochastic gradient descent.
+\begin{align*}
+    \hat{q}(S, A, \mathbf{w})                   & \approx q_\pi(S, A)                                                                                             \\
+    J(\mathbf{w})                               & = \mathbb{E}_\pi \left[ (q_\pi(S, A) - \hat{q}(S, A, \mathbf{w}))^2 \right]                                     \\
+    \Delta \mathbf{w}                           & = \alpha (q_\pi(S, A) - \hat{q}(S, A, \mathbf{w})) \nabla_\mathbf{w} \hat{q}(S, A, \mathbf{w})                  \\
+    \\
+    \nabla_\mathbf{w} \hat{q}(S, A, \mathbf{w}) & = \mathbf{x}(S, A)                                                                                              \\
+    \Delta \mathbf{w}                           & = \alpha (q_\pi(S, A) - \hat{q}(S, A, \mathbf{w})) \mathbf{x}(S, A) \text{ (for linear function approximation)} \\
+\end{align*}
+
+\noindent Like prediction, we must substitute a target for $q_\pi(S, A)$.
+
+\begin{itemize}
+    \item For MC, the target is the return $G_t$:
+          \begin{align*}
+              \Delta \mathbf{w} & = \alpha (G_t - \hat{q}(S_t, A_t, \mathbf{w})) \nabla_\mathbf{w} \hat{q}(S_t, A_t, \mathbf{w})                  \\
+              \Delta \mathbf{w} & = \alpha (G_t - \hat{q}(S_t, A_t, \mathbf{w})) \mathbf{x}(S_t, A_t) \text{ (for linear function approximation)}
+          \end{align*}
+    \item For TD(0), the target is the TD target $R_{t+1} + \gamma \hat{q}(S_{t+1},
+              A_{t+1}, \mathbf{w})$:
+          \begin{align*}
+              \Delta \mathbf{w} & = \alpha (R_{t+1} + \gamma \hat{q}(S_{t+1}, A_{t+1}, \mathbf{w}) - \hat{q}(S_t, A_t, \mathbf{w})) \nabla_\mathbf{w} \hat{q}(S_t, A_t, \mathbf{w})                  \\
+              \Delta \mathbf{w} & = \alpha (R_{t+1} + \gamma \hat{q}(S_{t+1}, A_{t+1}, \mathbf{w}) - \hat{q}(S_t, A_t, \mathbf{w})) \mathbf{x}(S_t, A_t) \text{ (for linear function approximation)}
+          \end{align*}
+    \item For forward-view TD($\lambda$), the target is the action-value $\lambda$-return
+          $q_t^\lambda$:
+          \begin{align*}
+              \Delta \mathbf{w} & = \alpha (q_t^\lambda - \hat{q}(S_t, A_t, \mathbf{w})) \nabla_\mathbf{w} \hat{q}(S_t, A_t, \mathbf{w})                  \\
+              \Delta \mathbf{w} & = \alpha (q_t^\lambda - \hat{q}(S_t, A_t, \mathbf{w})) \mathbf{x}(S_t, A_t) \text{ (for linear function approximation)}
+          \end{align*}
+    \item For backward-view TD($\lambda$):
+          \begin{align*}
+              \delta_t          & = R_{t+1} + \gamma \hat{q}(S_{t+1}, A_{t+1}, \mathbf{w}) - \hat{q}(S_t, A_t, \mathbf{w})    \\
+              E_t               & = \gamma \lambda E_{t-1} + \nabla_\mathbf{w} \hat{q}(S_t, A_t, \mathbf{w})                  \\
+              E_t               & = \gamma \lambda E_{t-1} + \mathbf{x}(S_t, A_t) \text{ (for linear function approximation)} \\
+              \Delta \mathbf{w} & = \alpha \delta_t E_t
+          \end{align*}
+\end{itemize}
+
+\subsection{Batch Methods}
+
+Batch methods seek to find the best fitting value function given the agent's
+entire experience, rather than updating one step at a time. \\
+
+\noindent \textbf{Least squares prediction}: Given an experience dataset
+$\mathcal{D} = \{(s_1, v_1^\pi), (s_2, v_2^\pi), \dots, (s_T, v_T^\pi)\}$,
+the goal is to find the parameter vector $\mathbf{w}$ that minimizes the
+sum-squared error between the predicted values $\hat{v}(s_t, \mathbf{w})$
+and the target values $v_t^\pi$. This is defined by the least squares objective
+function $LS(\mathbf{w})$:
+
+\begin{equation*}
+    LS(\mathbf{w}) = \sum_{t=1}^T (v_t^\pi - \hat{v}(s_t, \mathbf{w}))^2
+\end{equation*}
+
+\noindent \textbf{Experience replay}: One way to find the minimum of
+$LS(\mathbf{w})$ is to use stochastic gradient descent with experience replay.
+This involves repeatedly sampling state-value pairs $(s, v^\pi)$ from the
+experience $\mathcal{D}$ and applying the SGD update:
+
+\begin{equation*}
+    \Delta \mathbf{w} = \alpha (v^\pi - \hat{v}(s, \mathbf{w})) \nabla_\mathbf{w} \hat{v}(s, \mathbf{w})
+\end{equation*}
+
+\noindent This process is guaranteed to converge to the least squares solution
+
+\begin{equation*}
+    \mathbf{w}^\pi = \arg\min_\mathbf{w} LS(\mathbf{w})
+\end{equation*}
+
+\noindent \textbf{Linear least squares prediction}: While experience replay will converge to the least squares solution, it can
+take many iterations. For linear value function approximation, $\hat{v}(s,
+    \mathbf{w}) = \mathbf{x}(s)^\top \mathbf{w}$, we can solve for the least
+squares solution directly. By setting the expected update to zero, we can
+derive a closed-form solution for $\mathbf{w}$:
+\begin{align*}
+    \mathbb{E}_\mathcal{D}[\Delta \mathbf{w}]                                       & = 0                                                                                                          \\
+    \alpha \sum_{t=1}^T \mathbf{x}(s_t) (v_t^\pi - \mathbf{x}(s_t)^\top \mathbf{w}) & = 0                                                                                                          \\
+    \sum_{t=1}^T \mathbf{x}(s_t) v_t^\pi                                            & = \sum_{t=1}^T \mathbf{x}(s_t) \mathbf{x}(s_t)^\top \mathbf{w}                                               \\
+    \mathbf{w}                                                                      & = \left( \sum_{t=1}^T \mathbf{x}(s_t) \mathbf{x}(s_t)^\top \right)^{-1} \sum_{t=1}^T \mathbf{x}(s_t) v_t^\pi
+\end{align*}
+
+\noindent However, in practice, we don't know the true values $v_t^\pi$. Instead, we use
+noisy or biased samples of $v_t^\pi$ and solve for the fixed point of the
+desired update.
+
+\begin{itemize}
+    \item \textbf{Least Squares Monte-Carlo (LSMC)} uses the return $G_t$ as the target.
+    \item \textbf{Least Squares Temporal-Difference (LSTD)} uses the TD target $R_{t+1} + \gamma \hat{v}(S_{t+1}, \mathbf{w})$.
+    \item \textbf{Least Squares TD($\lambda$) (LSTD($\lambda$))} uses the $\lambda$-return $G_t^\lambda$.
+\end{itemize}
+
+\noindent Each of these methods provides a way to find the solution directly without
+iterating.
