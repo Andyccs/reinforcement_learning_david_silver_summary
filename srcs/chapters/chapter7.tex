@@ -1,15 +1,83 @@
 \section{Policy Gradients}
 
-TODO
+In this chapter, the policy $\pi$ is parameterized (instead of using
+$\epsilon$-greedy policy):
 
-\subsection{Finite Difference Policy Gradient}
+\[
+    \pi_\theta(s,a) = \mathbb{P}[a|s,\theta]
+\]
 
-TODO
+\noindent The objective is to find the optimal parameter $\theta$ that maximizes a
+performance measure $J(\theta)$. There are three common objective functions:
+\begin{itemize}
+    \item \textbf{Start value:} The mean value of the start state (for episodic tasks).
+          \[
+              J_1(\theta) = V^{\pi_\theta}(s_1) = \mathbb{E}_{\pi_\theta}[v_1]
+          \]
+    \item \textbf{Average value:} The mean value over all states, weighted by the stationary distribution of the policy.
+          \[
+              J_{avV}(\theta) = \sum_{s} d^{\pi_\theta}(s) V^{\pi_\theta}(s)
+          \]
+    \item \textbf{Average reward:} The mean reward per time-step, also weighted by the stationary distribution.
+          \[
+              J_{avR}(\theta) = \sum_{s} d^{\pi_\theta}(s) \sum_{a} \pi_\theta(s, a) \mathcal{R}_s^a
+          \]
+\end{itemize}
+
+\noindent where $d^{\pi_\theta}(s)$ is the stationary distribution of the Markov chain
+for policy $\pi_\theta$.\\
+
+\noindent Computing policy gradients by finite differentces: We don't know the true
+function for $J(\theta)$, so we can't differentiate the function directly.
+Instead, we can estimate the gradient by finite differences:
+
+\[
+    \frac{\partial J(\theta)}{\partial \theta_k} \approx \frac{J(\theta + \epsilon u_k) - J(\theta)}{\epsilon}
+\]
+where $u_k$ is a unit vector with 1 in the k-th component and 0 elsewhere.
 
 \subsection{Monte-Carlo Policy Gradient}
 
-TODO
+The likelihood ratios:
+
+\begin{align*}
+    \nabla_\theta \pi_\theta(s,a) & = \pi_\theta(s,a) \frac{\nabla_\theta \pi_\theta(s,a)}{\pi_\theta(s,a)} \\
+    \nabla_\theta \pi_\theta(s,a) & = \pi_\theta(s,a) \nabla_\theta \log \pi_\theta(s,a)                    \\
+                                  & \nabla_\theta \log \pi_\theta(s,a) \text{ is called the score function}
+\end{align*}
+
+\noindent \textbf{One-Step MDP}: Consider a simple class of one-step MDPs starting in state $s
+    \sim d(s)$ and receiving reward $r = \mathcal{R}_s^a$ after one time-step.
+
+\begin{align*}
+    J(\theta)               & = \mathbb{E}_{\pi_\theta}[r]                                                                              \\
+                            & = \sum_{s \in S} d(s) \sum_{a \in A} \pi_\theta(s,a) \mathcal{R}_{s,a}                                    \\
+    \nabla_\theta J(\theta) & = \sum_{s \in S} d(s) \sum_{a \in A} \pi_\theta(s,a) \nabla_\theta \log \pi_\theta(s,a) \mathcal{R}_{s,a} \\
+                            & = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) r]
+\end{align*}
+notice that the $\nabla_\theta J(\theta)$ is no longer depends on $d(s)$ and we can compute the gradient by sampling without using finite differences.\\
+
+\noindent \textbf{Policy Gradient Theorem}: The policy gradient theorem generalized the likelihood
+ratio approach to multi-step MDP, by replacing instantaneous reward $r$ with
+long-term value $Q^\pi(s,a)$.
+
+\[
+    \nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) Q^{\pi_\theta}(s,a)]
+\]
+
+\begin{algorithm}
+    \caption{REINFORCE}
+    \begin{algorithmic}
+        \State Initialize $\theta$ arbitrarily
+        \For{each episode $\{s_1, a_1, r_2, \ldots, s_{T-1}, a_{T-1}, r_T\} \sim \pi_\theta$}
+        \For{$t=1$ to $T-1$}
+        \State $\theta \leftarrow \theta + \alpha \nabla_\theta \log \pi_\theta(s_t, a_t) v_t$
+        \EndFor
+        \EndFor
+        \State \textbf{return} $\theta$
+    \end{algorithmic}
+\end{algorithm}
 
 \subsection{Actor-Critic Policy Gradient}
 
-TODO
+Actor-Critic methods learn value function and policy simultaneously.
