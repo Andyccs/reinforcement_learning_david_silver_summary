@@ -45,19 +45,19 @@ The conditions are:
 
 \noindent The GLIE Monte-Carlo control algorithm is as follows:
 
-\begin{enumerate}
-    \item Sample $k$th episode using $\pi$: $\{S_1, A_1, R_2, \dots, S_T\} \sim \pi$
-    \item For each state $S_t$ and action $A_t$ in the episode,
-          \begin{itemize}
-              \item $N(S_t, A_t) \leftarrow N(S_t, A_t) + 1$
-              \item $Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \frac{1}{N(S_t, A_t)} (G_t - Q(S_t, A_t))$
-          \end{itemize}
-    \item Improve policy based on the new action-value function
-          \begin{itemize}
-              \item $\epsilon \leftarrow 1/k$
-              \item $\pi \leftarrow \epsilon\text{-greedy}(Q)$
-          \end{itemize}
-\end{enumerate}
+\begin{algorithm}[H]
+    \caption{GLIE Monte-Carlo control}
+    \begin{algorithmic}
+        \State Sample $k$th episode using $\pi$: $\{S_1, A_1, R_2, \dots, S_T\} \sim \pi$
+        \For{each state $S_t$ and action $A_t$ in the episode}
+        \State $N(S_t, A_t) \leftarrow N(S_t, A_t) + 1$
+        \State $Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \frac{1}{N(S_t, A_t)} (G_t - Q(S_t, A_t))$
+        \EndFor
+        \State Improve policy based on the new action-value function
+        \State $\epsilon \leftarrow 1/k$
+        \State $\pi \leftarrow \epsilon\text{-greedy}(Q)$
+    \end{algorithmic}
+\end{algorithm}
 
 \noindent GLIE Monte-Carlo control converges to the optimal action-value function, $Q(s,
     a) \rightarrow q_*(s, a)$
@@ -74,23 +74,22 @@ The conditions are:
 
 \noindent Sarsa algorithm for on-policy control is as follows:
 
-\begin{itemize}
-    \item Initialize $Q(s, a), \forall s \in \mathcal{S}, a \in \mathcal{A}(s)$,
-          arbitrarily, and $Q(\text{terminal-state}, \cdot) = 0$
-    \item Repeat (for each episode):
-          \begin{itemize}
-              \item Initialize $S$
-              \item Choose $A$ from $S$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
-              \item Repeat (for each step of episode):
-                    \begin{itemize}
-                        \item Take action $A$, observe $R, S'$
-                        \item Choose $A'$ from $S'$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
-                        \item $Q(S, A) \leftarrow Q(S, A) + \alpha[R + \gamma Q(S', A') - Q(S, A)]$
-                        \item $S \leftarrow S'; A \leftarrow A';$
-                    \end{itemize}
-              \item until $S$ is terminal
-          \end{itemize}
-\end{itemize}
+\begin{algorithm}[H]
+    \caption{Sarsa}
+    \begin{algorithmic}
+        \State Initialize $Q(s, a), \forall s \in \mathcal{S}, a \in \mathcal{A}(s)$, arbitrarily, and $Q(\text{terminal-state}, \cdot) = 0$
+        \Repeat{ for each episode}
+        \State Initialize $S$
+        \State Choose $A$ from $S$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+        \Repeat{ for each step of episode}
+        \State Take action $A$, observe $R, S'$
+        \State Choose $A'$ from $S'$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+        \State $Q(S, A) \leftarrow Q(S, A) + \alpha[R + \gamma Q(S', A') - Q(S, A)]$
+        \State $S \leftarrow S'; A \leftarrow A';$
+        \Until{$S$ is terminal}
+        \Until{end}
+    \end{algorithmic}
+\end{algorithm}
 
 \noindent \textbf{n-Step Sarsa}: Instead of updating $Q$ based on a single step, we can update it using n steps:
 
@@ -124,29 +123,27 @@ action-value function:
 
 \noindent Sarsa($\lambda$) algorithm is as follows:
 
-\begin{itemize}
-    \item Initialize $Q(s, a)$ arbitrarily, for all $s \in \mathcal{S}, a \in
-              \mathcal{A}(s)$
-    \item Repeat (for each episode):
-          \begin{itemize}
-              \item $E(s, a) = 0$, for all $s \in \mathcal{S}, a \in \mathcal{A}(s)$
-              \item Initialize $S, A$
-              \item Repeat (for each step of episode):
-                    \begin{itemize}
-                        \item Take action $A$, observe $R, S'$
-                        \item Choose $A'$ from $S'$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
-                        \item $\delta \leftarrow R + \gamma Q(S', A') - Q(S, A)$
-                        \item $E(S, A) \leftarrow E(S, A) + 1$
-                        \item For all $s \in \mathcal{S}, a \in \mathcal{A}(s)$:
-                              \begin{itemize}
-                                  \item $Q(s, a) \leftarrow Q(s, a) + \alpha \delta E(s, a)$
-                                  \item $E(s, a) \leftarrow \gamma \lambda E(s, a)$
-                              \end{itemize}
-                        \item $S \leftarrow S'; A \leftarrow A'$
-                    \end{itemize}
-              \item until $S$ is terminal
-          \end{itemize}
-\end{itemize}
+\begin{algorithm}[H]
+    \caption{Sarsa($\lambda$)}
+    \begin{algorithmic}
+        \State Initialize $Q(s, a)$ arbitrarily, for all $s \in \mathcal{S}, a \in \mathcal{A}(s)$
+        \Repeat{ for each episode}
+        \State $E(s, a) = 0$, for all $s \in \mathcal{S}, a \in \mathcal{A}(s)$
+        \State Initialize $S, A$
+        \Repeat{ for each step of episode}
+        \State Take action $A$, observe $R, S'$
+        \State Choose $A'$ from $S'$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+        \State $\delta \leftarrow R + \gamma Q(S', A') - Q(S, A)$
+        \State $E(S, A) \leftarrow E(S, A) + 1$
+        \For{all $s \in \mathcal{S}, a \in \mathcal{A}(s)$}
+        \State $Q(s, a) \leftarrow Q(s, a) + \alpha \delta E(s, a)$
+        \State $E(s, a) \leftarrow \gamma \lambda E(s, a)$
+        \EndFor
+        \State $S \leftarrow S'; A \leftarrow A'$
+        \Until{$S$ is terminal}
+        \Until{end}
+    \end{algorithmic}
+\end{algorithm}
 
 \subsection{Off-Policy Learning}
 
@@ -178,19 +175,18 @@ policy $\mu$ to compute $v_\pi(s)$ or $q_\pi(s, a)$. \\
 
 \noindent Q-learning algorithm is as follows:
 
-\begin{itemize}
-    \item Initialize $Q(s, a), \forall s \in \mathcal{S}, a \in \mathcal{A}(s)$,
-          arbitrarily, and $Q(\text{terminal-state}, \cdot) = 0$
-    \item Repeat (for each episode):
-          \begin{itemize}
-              \item Initialize $S$
-              \item Repeat (for each step of episode):
-                    \begin{itemize}
-                        \item Choose $A$ from $S$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
-                        \item Take action $A$, observe $R, S'$
-                        \item $Q(S, A) \leftarrow Q(S, A) + \alpha[R + \gamma \max_{a'} Q(S', a') - Q(S, A)]$
-                        \item $S \leftarrow S'$
-                    \end{itemize}
-              \item until $S$ is terminal
-          \end{itemize}
-\end{itemize}
+\begin{algorithm}[H]
+    \caption{Q-learning}
+    \begin{algorithmic}
+        \State Initialize $Q(s, a), \forall s \in \mathcal{S}, a \in \mathcal{A}(s)$, arbitrarily, and $Q(\text{terminal-state}, \cdot) = 0$
+        \Repeat{ for each episode}
+        \State Initialize $S$
+        \Repeat
+        \State Choose $A$ from $S$ using policy derived from $Q$ (e.g., $\epsilon$-greedy)
+        \State Take action $A$, observe $R, S'$
+        \State $Q(S, A) \leftarrow Q(S, A) + \alpha[R + \gamma \max_{a'} Q(S', a') - Q(S, A)]$
+        \State $S \leftarrow S'$
+        \Until{$S$ is terminal}
+        \Until{end}
+    \end{algorithmic}
+\end{algorithm}
