@@ -80,4 +80,64 @@ long-term value $Q^\pi(s,a)$.
 
 \subsection{Actor-Critic Policy Gradient}
 
-Actor-Critic methods learn value function and policy simultaneously.
+Actor-Critic methods learn value function and policy simultaneously. Critic
+updates action-value function $Q_w(s,a)$ with parameter $w$ to estimate
+$Q^{\pi_\theta}(s,a)$, while Actor updates policy $\pi_\theta$ with parameter
+$\theta$ in the direction suggested by the critic.
+
+\begin{align*}
+    \nabla_\theta J(\theta) & \approx \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s, a) Q_w(s, a)] \\
+    \Delta \theta           & = \alpha \nabla_\theta \log \pi_\theta(s, a) Q_w(s, a)
+\end{align*}
+
+\noindent All previously discussed value function approximation methods can be used in
+Critic, for example, the following algorithm uses TD(0) to update the parameter
+$w$ of a linear value function approximation $Q_w(s,a) = \phi(s,a)^T w$:
+
+\begin{algorithm}[H]
+    \caption{Action-Value Actor-Critic}
+    \begin{algorithmic}
+        \State Initialize $s, \theta, w$
+        \State Sample $a \sim \pi_\theta(s,a)$
+        \For{each step}
+        \State Sample reward $r = \mathcal{R}_s^a$, sample transition $s' \sim \mathcal{P}_{s, \cdot}^a$
+        \State Sample action $a' \sim \pi_\theta(s', a')$
+        \State $\delta = r + \gamma Q_w(s', a') - Q_w(s, a)$
+        \State $\theta \leftarrow \theta + \alpha \nabla_\theta \log \pi_\theta(s, a) Q_w(s, a)$
+        \State $w \leftarrow w + \beta \delta \phi(s, a)$
+        \State $a \leftarrow a', s \leftarrow s'$
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+\noindent However, approximating policy gradient $\nabla_\theta J(\theta)$ introduces
+bias and it might not find the right solution. The \textbf{Compatible Function
+    Approximation Theorem} proofs that under certain conditions, the policy
+gradient can be exact (instead of an approximation of policy gradient)!
+
+\begin{enumerate}
+    \item \textbf{Compatibility}: The value function approximator $Q_w(s,a)$ must be
+          compatible with the policy $\pi_\theta(s,a)$. This is achieved if the gradient
+          of the approximator with respect to its weights $w$ is equal to the score
+          function of the policy.
+          \[
+              \nabla_w Q_w(s,a) = \nabla_\theta \log \pi_\theta(s,a)
+          \]
+          In practice, this is satisfied by choosing a linear approximator for the
+          critic, $Q_w(s,a) = \phi(s,a)^T w$, and setting the features $\phi(s,a)$ to be
+          the score function, i.e., $\phi(s,a) := \nabla_\theta \log \pi_\theta(s,a)$.
+
+    \item \textbf{Minimum Mean-Squared Error}: The parameters $w$ of the value
+          function must be chosen to minimize the mean-squared error between the
+          approximated value and the true action-value function.
+          \[
+              \epsilon = \mathbb{E}_{\pi_\theta}[(Q^{\pi_\theta}(s,a) - Q_w(s,a))^2]
+          \]
+          This condition is fulfilled by training the critic using a policy evaluation
+          method like TD learning, which minimizes this error over time.
+\end{enumerate}
+
+\noindent If these conditions hold, then the policy gradient is \textbf{exact} (and not an approximation):
+\[
+    \nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) Q_w(s,a)]
+\]
