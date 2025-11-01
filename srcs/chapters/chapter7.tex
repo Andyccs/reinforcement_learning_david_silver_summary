@@ -141,3 +141,61 @@ gradient can be exact (instead of an approximation of policy gradient)!
 \[
     \nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) Q_w(s,a)]
 \]
+
+\noindent \textbf{Baseline function and Advantage function}: To reduce the variance of policy
+gradient estimates, a baseline function $B(s)$ can be subtracted from the
+action-value function without introducing bias:
+
+\begin{align*}
+    \nabla_\theta J(\theta) & = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) Q^{\pi_\theta}(s,a)] - \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) B(s)]    \\
+                            & = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) (Q^{\pi_\theta}(s,a) - B(s))]                                                              \\
+                            & = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) (Q^{\pi_\theta}(s,a) - V^{\pi_\theta}(s))] \text{, when } B(s) =  V^{\pi_\theta}(s)        \\
+                            & = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) A^{\pi_\theta}(s,a)] \text{, where } A^{\pi_\theta}(s,a) \text{ is the advantage function}
+\end{align*}
+
+\noindent The term $\mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) B(s)]$ is equal to zero:
+
+\begin{align*}
+    \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s,a) B(s)] & = \sum_{s \in \mathcal{S}} d^{\pi_\theta}(s) \sum_{a \in \mathcal{A }} \nabla_\theta \pi_\theta(s, a) B(s) \\
+                                                                     & = \sum_{s \in \mathcal{S}} d^{\pi_\theta}(s) B(s) \nabla_\theta \sum_{a \in \mathcal{A}} \pi_\theta(s, a)  \\
+                                                                     & = 0 \text{, since } \nabla_\theta \sum_{a \in \mathcal{A}} \pi_\theta(s, a) = \nabla_\theta 1 = 0
+\end{align*}
+
+\noindent In order to estimate the advantage function $A^{\pi_\theta}(s,a)$, we can use
+two function approximators, but this approaches has two set of parameters and
+it is more complex.
+
+\begin{align*}
+    V_v(s)              & \approx V^{\pi_\theta}(s) \text{, with parameters } v                    \\
+    Q_w(s,a)            & \approx Q^{\pi_\theta}(s,a) \text{, with parameters } w                  \\
+    A^{\pi_\theta}(s,a) & \approx A(s,a) = Q_w(s,a) - V_v(s) \text{, combining both approximators}
+\end{align*}
+
+\noindent Alternatively, we can estimate the advantage function using temporal-difference
+errors $\delta^{\pi_\theta}$, which only requires one set of critic parameters $v$:
+
+\begin{align*}
+    \delta^{\pi_\theta}                               & = r + \gamma V^{\pi_\theta}(s') - V^{\pi_\theta}(s)                                                               \\
+                                                      & \approx \delta_v = r + \gamma V_v(s') - V_v(s)                                                                    \\
+    \mathbb{E}_{\pi_\theta}[\delta^{\pi_\theta}|s, a] & = \mathbb{E}_{\pi_\theta}[r + \gamma V^{\pi_\theta}(s')|s, a] - V^{\pi_\theta}(s)                                 \\
+                                                      & = Q^{\pi_\theta}(s, a) - V^{\pi_\theta}(s)                                                                        \\
+                                                      & = A^{\pi_\theta}(s, a)                                                                                            \\
+    \nabla_\theta J(\theta)                           & = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s, a) \mathbb{E}_{\pi_\theta}[\delta^{\pi_\theta}|s, a] ] \\
+                                                      & = \mathbb{E}_{\pi_\theta}[\nabla_\theta \log \pi_\theta(s, a) \delta^{\pi_\theta}]
+\end{align*}
+
+\noindent The policy gradient can also be estimated at many time-scales. For
+example, Monte-Carlo policy gradient uses error from complete return, while
+actor-critic policy gradient uses the one-step TD error.
+
+\begin{align*}
+    \nabla_\theta J(\theta) & = \mathbb{E}_{{\pi_\theta}}[\nabla_\theta \log \pi_\theta(s, a) A^\pi_\theta(s, a)]                               \\
+    \Delta \theta           & = \alpha(v_t - V_v(s_t))\nabla_\theta \log \pi_\theta(s_t, a_t) \text{, by Monte-Carlo policy gradient}           \\
+    \Delta \theta           & = \alpha(r + \gamma V_v(s_{t+1}) - V_v(s_t))\nabla_\theta \log \pi_\theta(s_t, a_t) \text{, by one-step TD error} \\
+    \Delta \theta           & = \alpha(v_t^\lambda - V_v(s_t))\nabla_\theta \log \pi_\theta(s_t, a_t) \text{, by forward-view TD($\lambda$)}    \\
+    \\
+    \delta                  & = r_{t+1} + \gamma V_v(s_{t+1}) - V_v(s_t)                                                                        \\
+    e_{t+1}                 & = \lambda e_t + \nabla_\theta \log \pi_\theta(s_t, a_t)                                                           \\
+    \Delta \theta           & = \alpha \delta_t e_t \text{, by backward-view TD($\lambda$)}
+\end{align*}
+
