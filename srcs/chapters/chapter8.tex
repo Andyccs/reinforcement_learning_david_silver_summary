@@ -1,0 +1,89 @@
+\section{Integrating Learning and Planning}
+
+\subsection{Model-Based Reinforcement Learning}
+
+Model-Based Reinforcement Learning involves learning a model of the
+environment's dynamics and using this model to plan value function (and/or
+policy) from model. A model $\mathcal{M}$ is representation of an MDP $\langle
+    \mathcal{S}, \mathcal{A}, \mathcal{R}, \mathcal{P} \rangle$ parameterized by
+$\eta$. $\mathcal{S}$ and $\mathcal{A}$ are assumed known, so we only
+parameterized $\mathcal{R}_\eta$ and $\mathcal{P}_\eta$.
+
+\begin{align*}
+    S_{t+1} & \sim \mathcal{P}_\eta(S_{t+1} | S_t, A_t) \\
+    R_{t+1} & = \mathcal{R}_\eta(R_{t+1} | S_t, A_t)
+\end{align*}
+
+\noindent To learn a model, it means to learn $\mathcal{M}_\eta$ from real experience ${S_1,
+            A_1, R_2, \ldots, S_T}$ using supervised learning techniques. One model to
+learn $\mathcal{R}_\eta$ using $S_i, A_t \to R_{i+1}$ and another model to
+learn $\mathcal{P}_\eta$ using $S_i, A_t \to S_{i+1}$. \\
+
+\noindent After learning the model, we can sample experiences from the model to update
+the value function using model-free reinforcement learning methods in
+Chapter~\ref{sec:model_free_prediction} and
+Chapter~\ref{sec:model_free_control}. \\
+
+\noindent Real experience is only used to build the model. The value function is learned
+entirely from the model.
+
+\subsection{Integrated Architectures}
+
+Dyna architecture blends learning, acting, and planning together into a single
+continuous loop. The agent takes an action in the real environment and
+immediately use that one real experience its value function and model. Then,
+the agent simulates some number of experiences from the model to further update
+its value function. After that, it takes the next action and repeat the same
+process. \\
+
+\begin{algorithm}[H]
+    \caption{Dyna-Q Algorithm}
+    \label{alg:dyna-q}
+    \begin{algorithmic}[1]
+        \State Initialize $Q(s, a)$ and $Model(s, a)$ for all $s \in \mathcal{S}$ and $a \in \mathcal{A}(s)$
+        \For{forever}
+        \State $S \leftarrow$ current (nonterminal) state
+        \State $A \leftarrow \epsilon$-greedy($S, Q$)
+        \State Execute action $A$; observe resultant reward, $R$, and state, $S'$
+        \State $Q(S, A) \leftarrow Q(S, A) + \alpha[R+ \gamma \max_a Q(S', a) - Q(S, A)]$
+        \State $Model(S, A) \leftarrow R, S'$ (assuming deterministic environment)
+        \For{$n$ times}:
+        \State $S \leftarrow$ random previously observed state
+        \State $A \leftarrow$ random action previously taken in $S$
+        \State $R, S' \leftarrow Model(S, A)$
+        \State $Q(S, A) \leftarrow Q(S, A) + \alpha [R+ \gamma \max_a Q(S', a) - Q(S, A)]$
+        \EndFor
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection{Simulation-Based Search}
+
+Dyna-Q sampled random previously observed states and actions to simulate
+experiences from the model. Instead of random sampling, we can use the model to
+simulate many possible future trajectories that start from current state $s_t$
+to find a single best action for the current state. This is called forward
+search. \\
+
+\noindent Simulation-Based Search is a forward search paradigm that uses a learned model
+to simulate episodes of experience from the current state. Instead of
+exhaustively exploring a search tree, it applies model-free reinforcement
+learning methods to these simulated trajectories to evaluate actions and
+determine the best immediate action, making lookahead planning feasible in
+large or continuous state spaces. \\
+
+\begin{algorithm}[H]
+    \caption{Simple Monte-Carlo Search}
+    \begin{algorithmic}[1]
+        \State Given a model $\mathcal{M}_\nu$ and a simulation policy $\pi$
+        \For {action $a \in \mathcal{A}$}
+        \State Simulate $K$ episodes from current (real) state $s_t$ using $\mathcal{M}_\nu$ and $\pi$
+        \State Collect returns $G_t^{(k)}$ for $k=1, \ldots, K$
+        \State $Q(s_t, a) \leftarrow \frac{1}{K} \sum_{k=1}^{K} G_t^{(k)}$
+        \EndFor
+        \State Select current (real) action $a_t = \argmax_{a \in \mathcal{A}} Q(s_t, a)$
+    \end{algorithmic}
+\end{algorithm}
+
+\noindent More advanced tree search algorithms such as Monte-Carlo Tree Search (MCTS),
+Temporal-Difference Search and Dyna-2 were briefly presented.
