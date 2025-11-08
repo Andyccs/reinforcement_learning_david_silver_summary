@@ -157,3 +157,57 @@ def plot_policy(policy):
     ax.set_title('Policy (Red=Hit, Blue=Stick)')
     
     plt.show()
+
+
+def sarsa_lambda_control(episodes=1000, alpha=0.1, gamma=1.0, llambda=0.9):
+    env = easy21.Easy21()
+    q_state_action = {}
+
+    # Initialize Q(s,a) arbitrarily
+    # Q(terminal-state, a) = 0 and it is not initialized here
+    for d in range(1, 11):
+        for p in range(1, 22):
+            for a in ["stick", "hit"]:
+                state_action = (d, p, a)
+                q_state_action[state_action] = random.uniform(0, 1)
+    
+    for episode in range(1, episodes+1):
+        epsilon = 1.0 / episode
+        eligibility_trace_state_action = {}
+
+        # Initialize S
+        dealer = env.draw_first_card()
+        current_player = env.draw_first_card()
+
+        # Choose A from S using policy derived from Q (e.g., ε-greedy)
+        action = epsilon_greedy_policy(dealer, current_player, q_state_action, epsilon)
+        end = False
+        while not end:
+            # Take action A, observe R, S'
+            next_player, reward, _, end = env.step(dealer, current_player, action)
+
+            if end:
+                next_action = None
+                q_next = 0.0
+            else:
+                # Choose A' from S' using policy derived from Q (e.g., ε-greedy)
+                next_action = epsilon_greedy_policy(dealer, next_player, q_state_action, epsilon)
+                next_state_action = (dealer, next_player, next_action)
+                q_next = q_state_action.get(next_state_action, 0.0)
+
+            # Update delta
+            current_state_action = (dealer, current_player, action)
+            q_current = q_state_action.get(current_state_action, 0.0)
+            delta = reward + gamma * q_next - q_current
+
+            # Update eligibility trace
+            eligibility_trace_state_action[current_state_action] = eligibility_trace_state_action.get(current_state_action, 0.0) + 1.0
+            
+            # Update Q and eligibility traces for all state-action pairs with non-zero eligibility 
+            for state_action, eligibility in eligibility_trace_state_action.items():
+                q_state_action[state_action] = q_state_action.get(state_action, 0.0) + alpha * delta * eligibility
+                eligibility_trace_state_action[state_action] = gamma * llambda * eligibility
+
+            current_player = next_player
+            action = next_action
+    return q_state_action
