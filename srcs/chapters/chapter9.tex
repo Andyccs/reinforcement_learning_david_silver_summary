@@ -1,0 +1,103 @@
+\section{Exploration and Exploitation}
+
+Exploration means making the best decision given current information, while
+exploitation means making suboptimal action to gather more information so that
+the agent can make better decisions in the future. There needs to be a balance
+between exploration and exploitation in order to maximize long-term rewards.
+The discussion below covers some common methods for balancing exploration and
+exploitation to \textbf{minimize long-term total regret}.
+
+\subsection{Multi-Armed Bandits}
+
+\textbf{Multi-armed bandits} is a simplified reinforcement learning problem where an
+agent has to choose between multiple actions (arms) $a_t \in \mathcal{A}$ with
+unknown reward distributions $\mathcal{R}(r) = \mathbb{P}[r | a]$. The goal is
+to maximize the total reward $\sum_{\tau=1}^{t} r_{\tau}$ over a series of
+trials by balancing exploration and exploitation. \\
+
+\noindent \textbf{Regret} is defined as the opportunity loss for one step. Maximizing cumulative
+reward is equivalent to minimizing total regret. The goal is to an algorithm
+that has total regret that grows sublinearly with time to balance exploration
+and exploitation.
+
+\begin{align*}
+    Q(a) & = \mathbb{E} [r|a]                                            \\
+    V^*  & = Q(a^*) = \max_{a \in \mathcal{A}} Q(a)                      \\
+    l_t  & = \mathbb{E} [V^* - Q(a_t)]                                   \\
+    L_t  & = \mathbb{E} \left[ \sum_{\tau=1}^{t} V^* - Q(a_\tau) \right]
+\end{align*}
+
+\noindent \textbf{Counting Regret}: One way to compute total regret is to count the number of
+times the agent took a suboptimal action multiply by the gap $\Delta(a)$ for
+that action (using the formula below). A good algorithm should minimize the
+number of times it takes suboptimal actions since the gap is bigger. The issue
+with this approach is that the gaps are not known in advance.
+
+\begin{align*}
+    L_t & = \mathbb{E} \left[ \sum_{\tau=1}^{t} V^* - Q(a_\tau) \right] \\
+        & = \sum_{a \in \mathcal{A}} \mathbb{E} [N_t(a)] (V^* - Q(a))   \\
+        & = \sum_{a \in \mathcal{A}} \mathbb{E} [N_t(a)] \Delta(a)
+\end{align*}
+
+\noindent \textbf{Lai and Robbins Theorem} states that any algorithm must have total regret at
+least logarithmic in time:
+
+\begin{align*}
+    \liminf_{t \to \infty} L_t \ge log t \sum_{a: \Delta(a) > 0} \frac{\Delta(a)}{KL(\mathcal{R}^a || \mathcal{R}^{a*})}
+\end{align*}
+
+\noindent Here are some common algorithms and the total regret bounds they achieve:
+\begin{itemize}
+    \item \textbf{Greedy}: Always choose the action with the highest estimated value.
+          Greedy algorithm can lock onto a suboptimal action forever. Total regret is linear.
+    \item \textbf{$\epsilon$-greedy}: With probability $\epsilon$, choose a random action
+          (exploration), otherwise choose the action with the highest estimated
+          value (exploitation). $\epsilon$-greedy algorithm can lock onto a
+          suboptimal action forever. Total regret is linear.
+    \item \textbf{Optimism Initialization}: Initialize the estimated values to be
+          the maximum possible reward. This encourages exploration in the beginning
+          since all actions look good, but can still lock onto a suboptimal action forever.
+          Total regret is linear.
+    \item \textbf{Decaying $\epsilon$-greedy algorithm}: Decrease $\epsilon$ over time so that the
+          agent explores less and less as it gains more information. Total regret is
+          logarithmic. However, the following schedule requires knowledge of the gaps
+          $\Delta$ which are not known in advance.
+          \begin{align*}
+              c          & > 0                                                    \\
+              d          & = \min_{a: \Delta(a) > 0} \Delta(a)                    \\
+              \epsilon_t & = \min \left( 1, \frac{c |\mathcal{A}|}{d^2 t} \right)
+          \end{align*}
+\end{itemize}
+
+\noindent \textbf{Upper Confidence Bound (UCB)}: This algorithm estimate an upper confidence
+$\hat{U}_t(a)$ for each action value such that $Q(a) \le \hat{Q}_t(a) +
+    \hat{U}_t(a)$ with high probability. When small $N_t(a)$, the agent has not yet
+taken the action too many times, so the uncertainty $\hat{U}_t(a)$ is large,
+encouraging exploration. As $N_t(a)$ increases, the uncertainty $\hat{U}_t(a)$
+decreases, encouraging exploitation. The algorithm select action that maximizes
+Upper Confidence Bound:
+
+\[
+    a_t = \arg\max_{a \in \mathcal{A}} \hat{Q}_t(a) + \hat{U}_t(a)
+\]
+
+\noindent \textbf{Hoeffding's inequality}: One way to estimate the Upper Confidence Bound is to
+use Hoeffding's inequality.
+
+\begin{align*}
+    \mathbb{P}[ \mathbb{E}[X] > \bar{X}_t + u ] & \le e^{-2 t u^2}                  \\
+    \mathbb{P}[Q(a) > \hat{Q}_t(a) + U_t(a) ]   & \le e^{-2 N_t(a) U_t(a)^2}        \\
+    p                                           & = t^{-4} \text{ pick a desired p} \\
+    e^{-2 N_t(a) U_t(a)^2}                      & = p                               \\
+    U_t(a)                                      & = \sqrt{\frac{-\log p}{2 N_t(a)}} \\
+                                                & = \sqrt{\frac{2 \log t}{N_t(a)}}
+\end{align*}
+
+\noindent \textbf{UCB 1 algorithm}: Total regret is logarithmic.
+
+\[
+    a_t = \arg\max_{a \in \mathcal{A}} \hat{Q}_t(a) + \sqrt{\frac{2 \log t}{N_t(a)}}
+\]
+
+The following topics were skipped: Bayesian Bandits, Thompson Sampling,
+Information State Search, Contextual Bandits, MDPs.
