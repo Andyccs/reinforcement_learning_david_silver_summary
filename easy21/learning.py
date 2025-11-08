@@ -22,8 +22,8 @@ def monte_carlo_control(episodes=100):
     env = easy21.Easy21()
     n_state_action = {}
     q_state_action = {}
-    
-    for episode in range(1, episodes+1):
+
+    for episode in range(1, episodes + 1):
         state_action_traces = []
         end = False
         epsilon = 1.0 / episode
@@ -31,7 +31,9 @@ def monte_carlo_control(episodes=100):
         player = env.draw_first_card()
         while not end:
             current_player = player
-            action = epsilon_greedy_policy(dealer, current_player, q_state_action, epsilon)
+            action = epsilon_greedy_policy(
+                dealer, current_player, q_state_action, epsilon
+            )
             player, reward, _, end = env.step(dealer, current_player, action)
             state_action = (dealer, current_player, action)
             state_action_traces.append(state_action)
@@ -44,9 +46,9 @@ def monte_carlo_control(episodes=100):
             q_state_action[state_action] += (
                 reward - q_state_action[state_action]
             ) / n_state_action[state_action]
-        
-        
+
     return q_state_action
+
 
 def q_to_policy(q_state_action):
     policy = {}
@@ -61,12 +63,13 @@ def q_to_policy(q_state_action):
         policy[state] = policy[state][0]
     return policy
 
+
 def q_to_value_function(q_state_action):
     value_function = {}
     for (dealer, player, action), q_value in q_state_action.items():
         state = (dealer, player)
         if state not in value_function:
-            value_function[state] = float('-inf')
+            value_function[state] = float("-inf")
         if q_value > value_function[state]:
             value_function[state] = q_value
     return value_function
@@ -78,7 +81,7 @@ def plot_value_function(value_function):
     import numpy as np
 
     fig = plt.figure(figsize=(12, 8))
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
     x = np.arange(1, 11)
     y = np.arange(1, 22)
@@ -93,10 +96,10 @@ def plot_value_function(value_function):
 
     ax.plot_surface(X, Y, Z)
 
-    ax.set_xlabel('Dealer Showing')
-    ax.set_ylabel('Player Sum')
-    ax.set_zlabel('Value')
-    ax.set_title('Value Function')
+    ax.set_xlabel("Dealer Showing")
+    ax.set_ylabel("Player Sum")
+    ax.set_zlabel("Value")
+    ax.set_title("Value Function")
     plt.show()
 
 
@@ -108,7 +111,7 @@ def plot_q_function(q_state_action):
     fig = plt.figure(figsize=(20, 10))
 
     for i, action in enumerate(["stick", "hit"]):
-        ax = fig.add_subplot(1, 2, i + 1, projection='3d')
+        ax = fig.add_subplot(1, 2, i + 1, projection="3d")
         x = np.arange(1, 11)
         y = np.arange(1, 22)
         X, Y = np.meshgrid(x, y)
@@ -121,10 +124,10 @@ def plot_q_function(q_state_action):
                     Z[r, c] = q_state_action[state_action]
 
         ax.plot_surface(X, Y, Z)
-        ax.set_xlabel('Dealer Showing')
-        ax.set_ylabel('Player Sum')
-        ax.set_zlabel('Q-Value')
-        ax.set_title(f'Q-Function for Action: {action}')
+        ax.set_xlabel("Dealer Showing")
+        ax.set_ylabel("Player Sum")
+        ax.set_zlabel("Q-Value")
+        ax.set_title(f"Q-Function for Action: {action}")
 
     plt.show()
 
@@ -141,27 +144,32 @@ def plot_policy(policy):
     for i, player in enumerate(player_range):
         for j, dealer in enumerate(dealer_range):
             state = (dealer, player)
-            if state in policy and policy[state] == 'hit':
+            if state in policy and policy[state] == "hit":
                 policy_grid[i, j] = 1
 
     fig, ax = plt.subplots(figsize=(10, 10))
-    im = ax.imshow(policy_grid, cmap='coolwarm', origin='lower', extent=[0.5, 10.5, 0.5, 21.5])
+    im = ax.imshow(
+        policy_grid, cmap="coolwarm", origin="lower", extent=[0.5, 10.5, 0.5, 21.5]
+    )
 
     cbar = fig.colorbar(im, ticks=[0, 1])
-    cbar.ax.set_yticklabels(['Stick', 'Hit'])
+    cbar.ax.set_yticklabels(["Stick", "Hit"])
 
     ax.set_xticks(dealer_range)
     ax.set_yticks(player_range)
-    ax.set_xlabel('Dealer Showing')
-    ax.set_ylabel('Player Sum')
-    ax.set_title('Policy (Red=Hit, Blue=Stick)')
-    
+    ax.set_xlabel("Dealer Showing")
+    ax.set_ylabel("Player Sum")
+    ax.set_title("Policy (Red=Hit, Blue=Stick)")
+
     plt.show()
 
 
-def sarsa_lambda_control(episodes=1000, alpha=0.1, gamma=1.0, llambda=0.9):
+def sarsa_lambda_control(
+    episodes=1000, alpha=0.1, gamma=1.0, llambda=0.9, mc_q_state_action=None
+):
     env = easy21.Easy21()
     q_state_action = {}
+    mse_list = []
 
     # Initialize Q(s,a) arbitrarily
     # Q(terminal-state, a) = 0 and it is not initialized here
@@ -170,8 +178,8 @@ def sarsa_lambda_control(episodes=1000, alpha=0.1, gamma=1.0, llambda=0.9):
             for a in ["stick", "hit"]:
                 state_action = (d, p, a)
                 q_state_action[state_action] = random.uniform(0, 1)
-    
-    for episode in range(1, episodes+1):
+
+    for episode in range(1, episodes + 1):
         epsilon = 1.0 / episode
         eligibility_trace_state_action = {}
 
@@ -191,7 +199,9 @@ def sarsa_lambda_control(episodes=1000, alpha=0.1, gamma=1.0, llambda=0.9):
                 q_next = 0.0
             else:
                 # Choose A' from S' using policy derived from Q (e.g., ε-greedy)
-                next_action = epsilon_greedy_policy(dealer, next_player, q_state_action, epsilon)
+                next_action = epsilon_greedy_policy(
+                    dealer, next_player, q_state_action, epsilon
+                )
                 next_state_action = (dealer, next_player, next_action)
                 q_next = q_state_action.get(next_state_action, 0.0)
 
@@ -201,13 +211,71 @@ def sarsa_lambda_control(episodes=1000, alpha=0.1, gamma=1.0, llambda=0.9):
             delta = reward + gamma * q_next - q_current
 
             # Update eligibility trace
-            eligibility_trace_state_action[current_state_action] = eligibility_trace_state_action.get(current_state_action, 0.0) + 1.0
-            
-            # Update Q and eligibility traces for all state-action pairs with non-zero eligibility 
+            eligibility_trace_state_action[current_state_action] = (
+                eligibility_trace_state_action.get(current_state_action, 0.0) + 1.0
+            )
+
+            # Update Q and eligibility traces for all state-action pairs with non-zero eligibility
             for state_action, eligibility in eligibility_trace_state_action.items():
-                q_state_action[state_action] = q_state_action.get(state_action, 0.0) + alpha * delta * eligibility
-                eligibility_trace_state_action[state_action] = gamma * llambda * eligibility
+                q_state_action[state_action] = (
+                    q_state_action.get(state_action, 0.0) + alpha * delta * eligibility
+                )
+                eligibility_trace_state_action[state_action] = (
+                    gamma * llambda * eligibility
+                )
 
             current_player = next_player
             action = next_action
-    return q_state_action
+        if mc_q_state_action is not None:
+            mse = compute_mse(q_state_action, mc_q_state_action)
+            mse_list.append(mse)
+
+    return q_state_action, mse_list
+
+
+def compute_mse(q_state_action_1, q_state_action_2):
+    mse = 0.0
+    count = 0
+    for d in range(1, 11):
+        for p in range(1, 22):
+            for a in ["stick", "hit"]:
+                state_action = (d, p, a)
+                q1 = q_state_action_1.get(state_action, 0.0)
+                q2 = q_state_action_2.get(state_action, 0.0)
+                mse += (q1 - q2) ** 2
+                count += 1
+    return mse / count if count > 0 else 0.0
+
+
+def plot_lambda_mse(lambda_to_mse):
+    import matplotlib.pyplot as plt
+
+    lambdas = sorted(lambda_to_mse.keys())
+    mses = [lambda_to_mse[l] for l in lambdas]
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(lambdas, mses, marker="o")
+    plt.xlabel("Lambda")
+    plt.ylabel("Mean Squared Error (MSE)")
+    plt.title("MSE vs. Lambda for Sarsa(lambda)")
+    plt.grid(True)
+    plt.show()
+
+
+def plot_mse_per_episode(
+    mse_list_1, mse_list_2, label_1="Sarsa(lambda) 1", label_2="Sarsa(lambda) 2"
+):
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    episodes = np.arange(1, len(mse_list_1) + 1)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(episodes, mse_list_1, marker="o", label=label_1)
+    plt.plot(episodes, mse_list_2, marker="x", label=label_2)
+    plt.xlabel("Episode")
+    plt.ylabel("Mean Squared Error (MSE)")
+    plt.title("MSE per Episode for Sarsa(lambda)")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
