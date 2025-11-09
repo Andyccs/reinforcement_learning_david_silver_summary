@@ -1,12 +1,13 @@
 import easy21
 import random
+import numpy as np
 
 
-def epsilon_greedy_policy(dealer, player, q_state_action, epsilon=0.1):
+def epsilon_greedy_policy(dealer, player, get_q_value_fn, epsilon=0.1):
     state_action_1 = (dealer, player, "stick")
     state_action_2 = (dealer, player, "hit")
-    q_1 = q_state_action.get(state_action_1, 0.0)
-    q_2 = q_state_action.get(state_action_2, 0.0)
+    q_1 = get_q_value_fn(state_action_1)
+    q_2 = get_q_value_fn(state_action_2)
 
     m = 2
     probability_q_1 = epsilon / m + 1 - epsilon if q_1 > q_2 else epsilon / m
@@ -31,8 +32,10 @@ def monte_carlo_control(episodes=100):
         player = env.draw_first_card()
         while not end:
             current_player = player
+            def get_q_value_or_default(state_action):
+                return q_state_action.get(state_action, 0.0)
             action = epsilon_greedy_policy(
-                dealer, current_player, q_state_action, epsilon
+                dealer, current_player, get_q_value_or_default, epsilon
             )
             player, reward, _, end = env.step(dealer, current_player, action)
             state_action = (dealer, current_player, action)
@@ -188,7 +191,9 @@ def sarsa_lambda_control(
         current_player = env.draw_first_card()
 
         # Choose A from S using policy derived from Q (e.g., ε-greedy)
-        action = epsilon_greedy_policy(dealer, current_player, q_state_action, epsilon)
+        def get_q_value_or_default(state_action):
+            return q_state_action.get(state_action, 0.0)
+        action = epsilon_greedy_policy(dealer, current_player, get_q_value_or_default, epsilon)
         end = False
         while not end:
             # Take action A, observe R, S'
@@ -200,7 +205,7 @@ def sarsa_lambda_control(
             else:
                 # Choose A' from S' using policy derived from Q (e.g., ε-greedy)
                 next_action = epsilon_greedy_policy(
-                    dealer, next_player, q_state_action, epsilon
+                    dealer, next_player, get_q_value_or_default, epsilon
                 )
                 next_state_action = (dealer, next_player, next_action)
                 q_next = q_state_action.get(next_state_action, 0.0)
@@ -279,3 +284,109 @@ def plot_mse_per_episode(
     plt.grid(True)
     plt.legend()
     plt.show()
+
+
+def state_to_feature_vector(dealer, player, action):
+    feature_vector = np.zeros(36)
+
+    # Dealer's card (1-10) one-hot encoding
+    if 1 <= dealer <= 4:
+        feature_vector[0] = 1.0
+    if 4 <= dealer <= 7:
+        feature_vector[1] = 1.0
+    if 7 <= dealer <= 10:
+        feature_vector[2] = 1.0
+
+    if 1 <= player <= 6:
+        feature_vector[3] = 1.0
+    if 4 <= player <= 9:
+        feature_vector[4] = 1.0
+    if 7 <= player <= 12:
+        feature_vector[5] = 1.0
+    if 10 <= player <= 15:
+        feature_vector[6] = 1.0
+    if 13 <= player <= 18:
+        feature_vector[7] = 1.0
+    if 16 <= player <= 21:
+        feature_vector[8] = 1.0
+
+    if action == "hit":
+        feature_vector[9] = 1.0
+    if action == "stick":
+        feature_vector[10] = 1.0
+    return feature_vector
+
+
+def state_action_weight_to_state_action(q_state_action_weights):
+    q_state_action = {}
+    for d in range(1, 11):
+        for p in range(1, 22):
+            for a in ["stick", "hit"]:
+                state_action = (d, p, a)
+                features = state_to_feature_vector(d, p, a)
+                q_value = np.dot(q_state_action_weights, features)
+                q_state_action[state_action] = q_value
+    return q_state_action
+
+
+def lfa_q(d, p, a, weights):
+    features = state_to_feature_vector(d, p, a)
+    return np.dot(weights, features)
+
+
+def linear_function_approximation_control(
+    episodes=1000, epsilon=0.05, alpha=0.01, gamma=1.0, llambda=0.9, mc_q_state_action=None
+):
+    env = easy21.Easy21()
+    q_state_action_weights = np.random.randn(36)
+    mse_list = []
+
+    for _ in range(1, episodes + 1):
+        eligibility_trace = np.zeros(36)
+
+        # Initialize S
+        dealer = env.draw_first_card()
+        current_player = env.draw_first_card()
+
+        def get_q_value_fn(state_action):
+            features = state_to_feature_vector(*state_action)
+            return np.dot(q_state_action_weights, features)
+
+        # Choose A from S using policy derived from Q (e.g., ε-greedy)
+        action = epsilon_greedy_policy(dealer, current_player, get_q_value_fn, epsilon)
+        end = False
+        while not end:
+            # Take action A, observe R, S'
+            next_player, reward, _, end = env.step(dealer, current_player, action)
+
+            if end:
+                next_action = None
+                q_next = 0.0
+            else:
+                # Choose A' from S' using policy derived from Q (e.g., ε-greedy)
+                next_action = epsilon_greedy_policy(
+                    dealer, next_player, get_q_value_fn, epsilon
+                )
+                q_next = lfa_q(dealer, next_player, next_action, q_state_action_weights)
+
+            # Update delta
+            q_current = lfa_q(dealer, current_player, action, q_state_action_weights)
+            delta = reward + (gamma * q_next) - q_current
+
+            # Update eligibility trace
+            features = state_to_feature_vector(dealer, current_player, action)
+            eligibility_trace = (gamma * llambda * eligibility_trace) + features
+
+            # Update weights
+            q_state_action_weights = q_state_action_weights + (alpha * delta * eligibility_trace)
+
+            current_player = next_player
+            if not end:
+                action = next_action
+
+        q_state_action = state_action_weight_to_state_action(q_state_action_weights)
+        if mc_q_state_action is not None:
+            mse = compute_mse(q_state_action, mc_q_state_action)
+            mse_list.append(mse)
+
+    return q_state_action, mse_list
