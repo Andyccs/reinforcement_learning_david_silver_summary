@@ -4,18 +4,16 @@ import numpy as np
 
 
 def epsilon_greedy_policy(dealer, player, get_q_value_fn, epsilon=0.1):
-    state_action_1 = (dealer, player, "stick")
-    state_action_2 = (dealer, player, "hit")
-    q_1 = get_q_value_fn(state_action_1)
-    q_2 = get_q_value_fn(state_action_2)
+    if np.random.random() < epsilon:
+        # explore
+        action = np.random.choice(["hit", "stick"])
+    else:
+        state_action_1 = (dealer, player, "stick")
+        state_action_2 = (dealer, player, "hit")
+        q_1 = get_q_value_fn(state_action_1)
+        q_2 = get_q_value_fn(state_action_2)
+        action = "stick" if q_1 >= q_2 else "hit"
 
-    m = 2
-    probability_q_1 = epsilon / m + 1 - epsilon if q_1 > q_2 else epsilon / m
-    probability_q_2 = epsilon / m + 1 - epsilon if q_2 > q_1 else epsilon / m
-
-    action = random.choices(
-        ["stick", "hit"], weights=[probability_q_1, probability_q_2]
-    )[0]
     return action
 
 
@@ -276,8 +274,8 @@ def plot_mse_per_episode(
     episodes = np.arange(1, len(mse_list_1) + 1)
 
     plt.figure(figsize=(10, 6))
-    plt.plot(episodes, mse_list_1, marker="o", label=label_1)
-    plt.plot(episodes, mse_list_2, marker="x", label=label_2)
+    plt.plot(episodes, mse_list_1, label=label_1)
+    plt.plot(episodes, mse_list_2, label=label_2)
     plt.xlabel("Episode")
     plt.ylabel("Mean Squared Error (MSE)")
     plt.title("MSE per Episode for Sarsa(lambda)")
@@ -287,33 +285,21 @@ def plot_mse_per_episode(
 
 
 def state_to_feature_vector(dealer, player, action):
-    feature_vector = np.zeros(36)
+    # Define the intervals for dealer and player
+    dealer_intervals = [[1, 4], [4, 7], [7, 10]]
+    player_intervals = [[1, 6], [4, 9], [7, 12], [10, 15], [13, 18], [16, 21]]
+    actions = ["hit", "stick"]
 
-    # Dealer's card (1-10) one-hot encoding
-    if 1 <= dealer <= 4:
-        feature_vector[0] = 1.0
-    if 4 <= dealer <= 7:
-        feature_vector[1] = 1.0
-    if 7 <= dealer <= 10:
-        feature_vector[2] = 1.0
+    # Initialize a 36-element feature vector
+    feature_vector = np.zeros(len(dealer_intervals) * len(player_intervals) * len(actions))
 
-    if 1 <= player <= 6:
-        feature_vector[3] = 1.0
-    if 4 <= player <= 9:
-        feature_vector[4] = 1.0
-    if 7 <= player <= 12:
-        feature_vector[5] = 1.0
-    if 10 <= player <= 15:
-        feature_vector[6] = 1.0
-    if 13 <= player <= 18:
-        feature_vector[7] = 1.0
-    if 16 <= player <= 21:
-        feature_vector[8] = 1.0
-
-    if action == "hit":
-        feature_vector[9] = 1.0
-    if action == "stick":
-        feature_vector[10] = 1.0
+    feature_index = 0
+    for d_min, d_max in dealer_intervals:
+        for p_min, p_max in player_intervals:
+            for act in actions:
+                if (d_min <= dealer <= d_max) and (p_min <= player <= p_max) and (act == action):
+                    feature_vector[feature_index] = 1.0
+                feature_index += 1
     return feature_vector
 
 
@@ -335,10 +321,12 @@ def lfa_q(d, p, a, weights):
 
 
 def linear_function_approximation_control(
-    episodes=1000, epsilon=0.05, alpha=0.01, gamma=1.0, llambda=0.9, mc_q_state_action=None
+    episodes=1000, epsilon=0.05, alpha=0.01, gamma=1.0, llambda=0.9, mc_q_state_action=None, debug=False
 ):
     env = easy21.Easy21()
     q_state_action_weights = np.random.randn(36)
+    if debug:
+        q_state_action_weights = np.zeros(36)
     mse_list = []
 
     for _ in range(1, episodes + 1):
@@ -356,8 +344,14 @@ def linear_function_approximation_control(
         action = epsilon_greedy_policy(dealer, current_player, get_q_value_fn, epsilon)
         end = False
         while not end:
+            if debug:
+                print(f"{dealer=}, {current_player=}, {action=}")
+
             # Take action A, observe R, S'
             next_player, reward, _, end = env.step(dealer, current_player, action)
+            
+            if debug:
+                print(f"{next_player=}, {reward=}, {end=}")
 
             if end:
                 next_action = None
@@ -369,16 +363,25 @@ def linear_function_approximation_control(
                 )
                 q_next = lfa_q(dealer, next_player, next_action, q_state_action_weights)
 
+            if debug:
+                print(f"{next_action=}, {q_state_action_weights=}, {q_next=}")
+
             # Update delta
             q_current = lfa_q(dealer, current_player, action, q_state_action_weights)
             delta = reward + (gamma * q_next) - q_current
+            if debug:
+                print(f"{q_current=}, {delta=}")
 
             # Update eligibility trace
             features = state_to_feature_vector(dealer, current_player, action)
             eligibility_trace = (gamma * llambda * eligibility_trace) + features
+            if debug:
+                print(f"{features=}, {eligibility_trace=}")
 
             # Update weights
             q_state_action_weights = q_state_action_weights + (alpha * delta * eligibility_trace)
+            if debug:
+                print(f"{q_state_action_weights=}")
 
             current_player = next_player
             if not end:
